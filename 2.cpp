@@ -1,44 +1,68 @@
-#include <omp.h>
-#include <stdio.h>
-#include <stdlib.h>
-#define MAX_THREADS 2
+#include<stdio.h>
+#include<omp.h>
+#include<stdlib.h>
 
-static long steps = 1000000000;
-double step;
+/* Main Program */
 
-int main(int argc, const char *argv[]) {
+int main()
+{
+float          *Array, *Check, serial_sum, sum, partialsum;
+int             array_size, i;
 
-int i, j;
-double x;
-double pi, sum = 0.0;
-double start, delta;
+printf("Enter the size of the array\n");
+scanf_s("%d", &array_size);
 
-step = 1.0 / (double)steps;
+if (array_size <= 0) {
+printf("Array Size Should Be Of Positive Value ");
+exit(1);
+}
+/* Dynamic Memory Allocation */
 
-// Compute parallel compute times for 1-MAX_THREADS
-for (j = 1; j <= MAX_THREADS; j++) {
+Array = (float *)malloc(sizeof(float) * array_size);
+Check = (float*)malloc(sizeof(float) * array_size);
 
-printf(" running on %d threads: ", j);
+/* Array Elements Initialization */
 
-// This is the beginning of a single PI computation
-omp_set_num_threads(j);
+for (i = 0; i < array_size; i++) {
+Array[i] = i * 5;
+Check[i] = Array[i];
+}
+
+printf("The Array Elements Are \n");
+
+for (i = 0; i < array_size; i++)
+printf("Array[%d]=%f\n", i, Array[i]);
 
 sum = 0.0;
-double start = omp_get_wtime();
+partialsum = 0.0;
 
+/* OpenMP Parallel For Directive And Critical Section */
 
-#pragma omp parallel for reduction(+:sum) private(x)
-for (i = 0; i < steps; i++) {
-x = (i + 0.5)*step;
-sum += 4.0 / (1.0 + x * x);
-}
-
-// Out of the parallel region, finialize computation
-pi = step * sum;
-delta = omp_get_wtime() - start;
-printf("PI = %.16g computed in %.4g seconds\n", pi, delta);
+#pragma omp parallel for shared(sum)
+for (i = 0; i < array_size; i++) {
+#pragma omp critical
+sum = sum + Array[i];
 
 }
 
+serial_sum = 0.0;
 
+/* Serail Calculation */
+for (i = 0; i < array_size; i++)
+serial_sum = serial_sum + Check[i];
+
+
+if (serial_sum == sum)
+printf("\nThe Serial And Parallel Sums Are Equal\n");
+else {
+printf("\nThe Serial And Parallel Sums Are UnEqual\n");
+exit(1);
+}
+
+/* Freeing Memory */
+free(Check);
+free(Array);
+
+printf("\nThe SumOfElements Of The Array Using OpenMP Directives Is %f\n", sum);
+printf("\nThe SumOfElements Of The Array By Serial Calculation Is %f\n", serial_sum);
 }
